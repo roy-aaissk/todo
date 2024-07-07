@@ -1,0 +1,168 @@
+openapi: "3.0.3"
+info:
+  title: TODO
+  version: "1.0"
+servers:
+  - url: localhost:8080
+tags:
+  - name: "tasks"
+    description: "TODO tasks"
+paths:
+  /tasks/{taskID}:
+    put:
+      tags:
+        - "tasks"
+      parameters:
+        - in: path
+          name: taskID
+          schema:
+            type: integer
+          required: true
+          description: Numeric ID of the task to get
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Task"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+    delete:
+      description: "delete task"
+      tags:
+        - "tasks"
+      parameters:
+        - in: path
+          name: taskID
+          schema:
+            type: integer
+          required: true
+          description: Numeric ID of the task to get
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+  /tasks:
+    get:
+      tags:
+        - "tasks"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskIDs"
+            encoding:
+              payload:
+                contentType: application/json
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequest"
+
+    post:
+      tags:
+        - "tasks"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Task"
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequest"
+
+    delete:
+      tags:
+        - "tasks"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskIDs"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequest"
+
+components:
+  schemas:
+    TaskIDs:
+      title: task IDs
+      type: object
+      properties:
+        id:
+          items:
+            type: integer
+      required:
+        - id
+
+    Task:
+      title: task request body
+      type: array
+      items:
+        type: object
+        properties:
+          name:
+            type: string
+            description: task name
+            default: ""
+          status:
+            type: integer
+            description: task status
+          created_at:
+            type: string
+            format: date-time
+      required:
+        - name
+
+    BadRequest:
+      title: bad request
+      type: object
+      properties:
+        message:
+          type: string
+          default: "The API request was invalid or malformed, so the API server could not understand it."
+      required:
+        - status
+
+    Message:
+      type: object
+      properties:
+        message:
+          type: string
+          default: "OK"
