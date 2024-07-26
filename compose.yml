@@ -8,30 +8,16 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: pass
     healthcheck:
-      test: "psql -U user -d todo"
+      test: 'psql -U user -d todo'
       interval: 3s
       timeout: 3s
       retries: 100
       start_period: 10s
     ports:
-      - "5433:5432"
+      - '5433:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    networks:
-      - custom_network
-    restart: always
-  pgadmin:
-    image: dpage/pgadmin4:2024-04-01-1
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@example.com
-      PGADMIN_DEFAULT_PASSWORD: adminpassword
-    ports:
-      - "5050:80"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    depends_on:
-      db:
-        condition: service_healthy
+      - ./script:/docker-entrypoint-initdb.d
     networks:
       - custom_network
     restart: always
@@ -39,7 +25,7 @@ services:
   server:
     build: .
     ports:
-      - "9060:8080"
+      - '9060:8080'
     depends_on:
       db:
         condition: service_healthy
