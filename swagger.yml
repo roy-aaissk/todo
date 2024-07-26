@@ -3,7 +3,7 @@ info:
   title: TODO
   version: "1.0"
 servers:
-  - url: localhost:8080
+  - url: localhost:9060
 tags:
   - name: "tasks"
     description: "TODO tasks"
@@ -53,14 +53,22 @@ paths:
     get:
       tags:
         - "tasks"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/TaskIDs"
-            encoding:
-              payload:
-                contentType: application/json
+      parameters:
+        - in: query
+          name: taskID
+          schema:
+            type: integer
+          required: true
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          required: true
+        - in: query
+          name: offset
+          schema:
+            type: integer
+          required: true
       responses:
         "200":
           description: OK
@@ -121,15 +129,15 @@ paths:
 
 components:
   schemas:
-    TaskIDs:
-      title: task IDs
-      type: object
-      properties:
-        id:
-          items:
-            type: integer
-      required:
-        - id
+  #   TaskIDs:
+  #     title: task IDs
+  #     type: object
+  #     properties:
+  #       id:
+  #         items:
+  #           type: integer
+  #     required:
+  #       - id
 
     Task:
       title: task request body

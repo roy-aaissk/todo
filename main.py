@@ -1,80 +1,125 @@
-from dataclasses import dataclass
-
-@dataclass
-class Money:
-  amount: int
-  currency: str
-  
-  def __post_init__(self):
-    if (self.amount is None or not self.amount) or (self.currency is None or not self.currency):
-      raise ValueError("value s None or not value")
-  def Add(self, arg :'Money'):
-    if self.currency != arg.currency:
-      raise ValueError("different currencies")
-    return Money(self.amount + arg.amount,  self.currency)
-
-money = Money(100, "JPY")
-money1 = Money(1, 'JPY')
-print(money.Add(money1))
-
-# api Server作成
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from sqlalchemy import create_engine, Column, BigInteger, String, Integer, insert, text
+from sqlalchemy.orm import declarative_base, Session
+import db.db as db
 
+# Flask app
 app = Flask(__name__)
 CORS(app)
 
-
-
-from sqlalchemy import create_engine, Column, BigInteger, String, Integer
-
-# データベースの接続文字列を設定します。例: SQLiteを使用する場合
+# Database setup
 DATABASE_URL = "postgresql://user:pass@db:5432/todo"
-
-# エンジンを作成します
 engine = create_engine(DATABASE_URL)
+Base = declarative_base()
 
 @app.route('/tasks', methods=['GET'])
 def get_tasks():
-  return jsonify({"message": "ok"})
+    with engine.connect() as connection:
+        results = connection.execute(
+            text("SELECT t.id, t.name, ts.name FROM tasks as t INNER JOIN task_status as ts ON ts.id = t.status_id ORDER BY id ASC")
+        )
+        tasks = []
+        for row in results:
+            task = {
+                'id': row[0],
+                'name': row[1],
+                'status': row[2]
+            }
+            tasks.append(task)
+        connection.close()
+        return jsonify(tasks)
+    
+@app.route('/tasks', methods=['PUT'])
+def update_task():
+    request_data = request.get_json()
 
-from sqlalchemy.orm import declarative_base
+    if not isinstance(request_data, list):
+        return jsonify({'error': 'Invalid data format, expected a list'}), 400
+    response_data = []
 
-Base = declarative_base()
+    try:
+        with engine.connect() as connection:
+            for task in request_data:
+                taskID = task.get('id')
+                taskName = task.get('name')
+                statusName = task.get('status_name')
 
-# Taskテーブルのモデルを定義します
-class Task(Base):
-    __tablename__ = 'tasks'
-    id = Column(BigInteger, primary_key=True)
-    name = Column(String(255), nullable=False)
-    status = Column(Integer, default=0)
+                if not taskName or not statusName:
+                    return jsonify({'error': 'Both name and status_name are required'}), 400
 
-# テーブルを作成します
-Base.metadata.create_all(engine)
-from sqlalchemy.orm import Session
-from sqlalchemy import insert, text, bindparam
-with Session(engine) as session:
-  session.execute(
-    insert(Task),
-    [
-      {"name":"task1","status":0},
-      {"name":"task2","status":0}
-    ],
-  )
-  session.execute(
-    text("UPDATE tasks SET name = :name, status = :status WHERE id = :id").bindparams(name="task3", status= 1, id = 1)
-  )
-  session.commit()
+                ids = connection.execute(
+                    text("SELECT id FROM task_status WHERE name = :name"),
+                    {'name': statusName}
+                ).first()
 
-with Session(engine) as session:
-  session.execute(
-    text("DELETE FROM  tasks WHERE status = :status").bindparams(status= 1)
-  )
-  session.commit()
-  
+                if ids is None:
+                    return jsonify({'error': 'Not Found status name'}), 400
+
+                for id in ids:
+                    connection.execute(
+                        text("UPDATE task SET name = :name, status_id = :status_id WHERE id = :id"),
+                        {'name': taskName, 'status_id': id, 'id': taskID}
+                    )
+                    connection.commit()
+            return jsonify(response_data), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/tasks', methods=['POST'])
+def add_task():
+    request_data = request.get_json()
+
+    if not isinstance(request_data, list):
+        return jsonify({'error': 'Invalid data format, expected a list'}), 400
+
+    response_data = []
+
+    try:
+        with engine.connect() as connection:
+            for task in request_data:
+                taskName = task.get('name')
+                statusName = task.get('status_name')
+
+                if not taskName or not statusName:
+                    return jsonify({'error': 'Both name and status_name are required'}), 400
+
+                ids = connection.execute(
+                    text("SELECT id FROM task_status WHERE name = :name"),
+                    {'name': statusName}
+                ).first()
+                if ids is None:
+                    return jsonify({'error': 'Not Found status name'}), 400
+                for id in ids:
+                    connection.execute(
+                        text("INSERT INTO tasks (name, status_id) VALUES (:name, :status_id)"),
+                        {'name': taskName, 'status_id': id}
+                    )
+                    connection.commit()
+                    return jsonify({'id': id})
+        return jsonify(response_data), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
-
-
-
-
+@app.route('/tasks', methods=['DELETE'])
+def delete_tasks():
+    requestData  = request.get_json()
+    if not isinstance(requestData, list):
+        return jsonify({'error': 'Invalid data format, expected a list'}), 400
+    try:
+        with engine.connect() as connection:
+            for task in requestData:
+                taskID  = task.get('id')
+                if not taskID:
+                    return jsonify({'error': 'Both name and status_name are required'}), 400
+                connection.execute(
+                        text("DELETE FROM tasks WHERE id = :id"),
+                        {'id': taskID}
+                    )
+                connection.commit()
+        return jsonify({'Message': 'OK'}),200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+if __name__ == '__main__':
+    app.run(debug=True)
