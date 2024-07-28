@@ -55,7 +55,7 @@ paths:
         - "tasks"
       parameters:
         - in: query
-          name: taskID
+          name: ids
           schema:
             type: integer
           required: true

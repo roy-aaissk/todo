@@ -2,7 +2,6 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from sqlalchemy import create_engine, Column, BigInteger, String, Integer, insert, text
 from sqlalchemy.orm import declarative_base, Session
-import db.db as db
 
 # Flask app
 app = Flask(__name__)
@@ -15,11 +14,33 @@ Base = declarative_base()
 
 @app.route('/tasks', methods=['GET'])
 def get_tasks():
+    request_data = request.get_json()
+    if not request_data:
+        return jsonify({"error": "Invalid input"}), 400
+
+    ids = request_data.get("ids")
+    limit = request_data.get("limit", 10)
+    offset = request_data.get("offset", 0)
+
+    if not ids:
+        return jsonify({"error": "IDs are required"}), 400
+
+    # Handle the case where limit is 0 or negative
+    if limit <= 0:
+        limit = 10
+    tasks = []
+    query = text("""
+        SELECT t.id, t.name, ts.name
+        FROM tasks as t
+        INNER JOIN task_status as ts ON ts.id = t.status_id
+        WHERE t.id in :ids
+        ORDER BY t.id ASC
+        LIMIT :limit OFFSET :offset
+    """)
+    params = {'ids': tuple(ids), 'limit': limit, 'offset': offset}
+
     with engine.connect() as connection:
-        results = connection.execute(
-            text("SELECT t.id, t.name, ts.name FROM tasks as t INNER JOIN task_status as ts ON ts.id = t.status_id ORDER BY id ASC")
-        )
-        tasks = []
+        results = connection.execute(query, params)
         for row in results:
             task = {
                 'id': row[0],
@@ -27,9 +48,9 @@ def get_tasks():
                 'status': row[2]
             }
             tasks.append(task)
-        connection.close()
-        return jsonify(tasks)
-    
+    connection.close()
+    return jsonify(tasks)
+
 @app.route('/tasks', methods=['PUT'])
 def update_task():
     request_data = request.get_json()
