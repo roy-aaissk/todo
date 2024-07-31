@@ -2,12 +2,15 @@ CREATE TABLE IF NOT EXISTS tasks (
     id SERIAL,
     name VARCHAR(255),
     status_id INT,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
     PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS task_status (
     id SERIAL,
     name VARCHAR(255),
+    created_at TIMESTAMP,
     PRIMARY KEY (id)
 );
 
