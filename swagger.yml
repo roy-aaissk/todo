@@ -3,79 +3,53 @@ info:
   title: TODO
   version: "1.0"
 servers:
-  - url: localhost:9060
+  - url: http://localhost:9060
 tags:
   - name: "tasks"
     description: "TODO tasks"
 paths:
-  /tasks/{taskID}:
-    put:
-      tags:
-        - "tasks"
-      parameters:
-        - in: path
-          name: taskID
-          schema:
-            type: integer
-          required: true
-          description: Numeric ID of the task to get
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Task"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Message"
-    delete:
-      description: "delete task"
-      tags:
-        - "tasks"
-      parameters:
-        - in: path
-          name: taskID
-          schema:
-            type: integer
-          required: true
-          description: Numeric ID of the task to get
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Message"
   /tasks:
     get:
       tags:
         - "tasks"
-      parameters:
-        - in: query
-          name: ids
-          schema:
-            type: integer
-          required: true
-        - in: query
-          name: limit
-          schema:
-            type: integer
-          required: true
-        - in: query
-          name: offset
-          schema:
-            type: integer
-          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Tasks"
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Task"
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadRequest"
+
+    put:
+      tags:
+        - "tasks"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TasksList"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
         "400":
           description: Invalid request
           content:
@@ -93,7 +67,7 @@ paths:
               $ref: "#/components/schemas/Task"
       responses:
         "201":
-          description: OK
+          description: Created
           content:
             application/json:
               schema:
@@ -112,7 +86,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TaskIDs"
+              $ref: "#/components/schemas/TasksList"
       responses:
         "200":
           description: OK
@@ -129,34 +103,44 @@ paths:
 
 components:
   schemas:
-  #   TaskIDs:
-  #     title: task IDs
-  #     type: object
-  #     properties:
-  #       id:
-  #         items:
-  #           type: integer
-  #     required:
-  #       - id
-
     Task:
       title: task request body
+      type: object
+      properties:
+        name:
+          type: string
+          description: task name
+          default: ""
+        status:
+          type: integer
+          description: task status
+        created_at:
+          type: string
+          format: date-time
+    Tasks:
+      title: tasks body
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+    TasksList:
+      title: tasks body
       type: array
       items:
         type: object
         properties:
-          name:
-            type: string
-            description: task name
-            default: ""
-          status:
+          id:
             type: integer
-            description: task status
-          created_at:
-            type: string
-            format: date-time
-      required:
-        - name
+          limit:
+            type: integer
+          offset:
+            type: integer
 
     BadRequest:
       title: bad request
@@ -165,7 +149,11 @@ components:
         message:
           type: string
           default: "The API request was invalid or malformed, so the API server could not understand it."
+        status:
+          type: integer
+          description: HTTP status code of the error
       required:
+        - message
         - status
 
     Message:
