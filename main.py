@@ -79,7 +79,7 @@ def update_task():
 
                 for id in ids:
                     connection.execute(
-                        text("UPDATE task SET name = :name, status_id = :status_id WHERE id = :id"),
+                        text("UPDATE tasks SET name = :name, status_id = :status_id WHERE id = :id"),
                         {'name': taskName, 'status_id': id, 'id': taskID}
                     )
                     connection.commit()
@@ -126,14 +126,14 @@ def add_task():
 @app.route('/tasks', methods=['DELETE'])
 def delete_tasks():
     requestData  = request.get_json()
-    if not isinstance(requestData, list):
+    if not isinstance(requestData, object):
         return jsonify({'error': 'Invalid data format, expected a list'}), 400
     try:
         with engine.connect() as connection:
-            for task in requestData:
-                taskID  = task.get('id')
-                if not taskID:
-                    return jsonify({'error': 'Both name and status_name are required'}), 400
+            taskIDs  = requestData.get('ids')
+            if not isinstance(taskIDs, list):
+                return jsonify({'error': 'Invalid data format, expected a list'}), 400
+            for taskID in taskIDs:
                 connection.execute(
                         text("DELETE FROM tasks WHERE id = :id"),
                         {'id': taskID}

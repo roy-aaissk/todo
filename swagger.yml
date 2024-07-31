@@ -86,7 +86,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TasksList"
+              $ref: "#/components/schemas/TaskIDs"
       responses:
         "200":
           description: OK
@@ -140,6 +140,14 @@ components:
           limit:
             type: integer
           offset:
+            type: integer
+    TaskIDs:
+      title: taskIDs body
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
             type: integer
 
     BadRequest:
